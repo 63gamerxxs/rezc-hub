@@ -1,0 +1,376 @@
+--====================================================
+-- SERVICES
+--====================================================
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+--====================================================
+-- STATES
+--====================================================
+local Aimbot = false
+local AutoJump = false
+local ESP = false
+local TeamCheck = false
+local WallCheck = false
+
+--====================================================
+-- UNIVERSAL CHARACTER
+--====================================================
+local function getControlledCharacter()
+	local subject = Camera.CameraSubject
+	if subject and subject:IsA("Humanoid") then
+		return subject.Parent
+	end
+end
+
+local function getControlledHumanoid()
+	local char = getControlledCharacter()
+	return char and char:FindFirstChildOfClass("Humanoid")
+end
+
+--====================================================
+-- BLUR
+--====================================================
+local blur = Instance.new("BlurEffect")
+blur.Size = 20
+blur.Parent = Lighting
+
+--====================================================
+-- GUI ROOT
+--====================================================
+local gui = Instance.new("ScreenGui")
+gui.Name = "Rezc Hub"
+gui.IgnoreGuiInset = true
+gui.ResetOnSpawn = false
+gui.Parent = LocalPlayer.PlayerGui
+
+--====================================================
+-- MAIN WINDOW
+--====================================================
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.fromScale(0.75,0.7)
+main.Position = UDim2.fromScale(0.5,0.5)
+main.AnchorPoint = Vector2.new(0.5,0.5)
+main.Draggable = true
+main.BackgroundColor3 = Color3.fromRGB(20,20,20)
+main.BackgroundTransparency = 0.15
+Instance.new("UICorner", main)
+
+--====================================================
+-- TITLE
+--====================================================
+local title = Instance.new("TextLabel", main)
+title.Position = UDim2.fromScale(0.05,0.05)
+title.Size = UDim2.fromScale(0.42,0.10)
+title.Text = "Rezc Hub – Universal"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 23
+title.TextColor3 = Color3.new(1,1,1)
+title.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+Instance.new("UICorner", title)
+
+--====================================================
+-- WINDOW BUTTONS
+--====================================================
+local function windowButton(txt,x)
+	local b = Instance.new("TextButton", main)
+	b.Size = UDim2.fromOffset(30,30)
+	b.Position = UDim2.new(1,-x,0,10)
+	b.Text = txt
+	b.Font = Enum.Font.GothamBold
+	b.TextSize = 16
+	b.TextColor3 = Color3.new(1,1,1)
+	b.BackgroundColor3 = Color3.fromRGB(55,55,55)
+	b.AutoButtonColor = false
+	Instance.new("UICorner", b)
+	return b
+end
+
+local closeBtn = windowButton("×",40)
+local minimizeBtn = windowButton("-",80)
+
+--====================================================
+-- TOGGLE ROW
+--====================================================
+local function toggleRow(text,y,get,set)
+	local lbl = Instance.new("TextLabel", main)
+	lbl.Size = UDim2.fromScale(0.25,0.14)
+	lbl.Position = UDim2.fromScale(0.05,y)
+	lbl.Text = text
+	lbl.Font = Enum.Font.GothamBold
+	lbl.TextSize = 20
+	lbl.TextColor3 = Color3.new(1,1,1)
+	lbl.BackgroundColor3 = Color3.fromRGB(55,55,55)
+	Instance.new("UICorner", lbl)
+
+	local btn = Instance.new("TextButton", main)
+	btn.Size = UDim2.fromScale(0.14,0.14)
+	btn.Position = UDim2.fromScale(0.320,y)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 20
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.BackgroundColor3 = Color3.fromRGB(55,55,55)
+	btn.AutoButtonColor = false
+	Instance.new("UICorner", btn)
+
+	local function refresh()
+		btn.Text = get() and "ON" or "OFF"
+	end
+
+	btn.MouseButton1Click:Connect(function()
+		set(not get())
+		refresh()
+	end)
+
+	refresh()
+end
+
+toggleRow("Aimbot",0.20,function()return Aimbot end,function(v)Aimbot=v end)
+toggleRow("Auto Jump",0.35,function()return AutoJump end,function(v)AutoJump=v end)
+toggleRow("ESP",0.50,function()return ESP end,function(v)ESP=v end)
+toggleRow("Team Check",0.65,function()return TeamCheck end,function(v)TeamCheck=v end)
+toggleRow("Wall Check",0.80,function()return WallCheck end,function(v)WallCheck=v end)
+
+--====================================================
+-- FADE HELPERS
+--====================================================
+local function fadeFrame(obj, show, time)
+	time = time or 0.3
+	local goal = {}
+
+	if obj:IsA("Frame") then
+		goal.BackgroundTransparency = show and 0.15 or 1
+	elseif obj:IsA("TextLabel") or obj:IsA("TextButton") then
+		goal.TextTransparency = show and 0 or 1
+	end
+
+	TweenService:Create(obj, TweenInfo.new(time, Enum.EasingStyle.Quad), goal):Play()
+end
+
+local function fadeGUI(root, show, time)
+	for _,v in ipairs(root:GetChildren()) do
+		fadeFrame(v, show, time)
+	end
+end
+
+local function setMainButtonsActive(active)
+	for _,v in ipairs(main:GetChildren()) do
+		if v:IsA("TextButton") then
+			v.Active = active
+			v.Visible = active
+		end
+	end
+end
+
+--====================================================
+-- CONFIRMATION UI
+--====================================================
+local confirm = Instance.new("Frame", gui)
+confirm.Size = UDim2.fromScale(0.35,0.2)
+confirm.Position = UDim2.fromScale(0.5,0.5)
+confirm.AnchorPoint = Vector2.new(0.5,0.5)
+confirm.BackgroundColor3 = Color3.fromRGB(30,30,30)
+confirm.Visible = false
+Instance.new("UICorner", confirm)
+
+local cText = Instance.new("TextLabel", confirm)
+cText.Size = UDim2.fromScale(1,0.5)
+cText.Position = UDim2.fromScale(0,0.1)
+cText.Text = "Close Rezc Hub?"
+cText.Font = Enum.Font.GothamBold
+cText.TextScaled = true
+cText.TextColor3 = Color3.new(1,1,1)
+cText.BackgroundTransparency = 1
+
+local function confirmButton(txt,x)
+	local b = Instance.new("TextButton", confirm)
+	b.Size = UDim2.fromScale(0.35,0.25)
+	b.Position = UDim2.fromScale(x,0.65)
+	b.Text = txt
+	b.Font = Enum.Font.GothamBold
+	b.TextScaled = true
+	b.TextColor3 = Color3.new(1,1,1)
+	b.BackgroundColor3 = Color3.fromRGB(50,50,50)
+	b.AutoButtonColor = false
+	Instance.new("UICorner", b)
+	return b
+end
+
+local yes = confirmButton("Yes",0.1)
+local no = confirmButton("No",0.55)
+
+--====================================================
+-- MINI BUTTON
+--====================================================
+local mini = Instance.new("TextButton", gui)
+mini.Size = UDim2.fromOffset(50,50)
+mini.Position = UDim2.fromScale(0.5,0.5)
+mini.AnchorPoint = Vector2.new(0.5,0.5)
+mini.Text = "RH"
+mini.Font = Enum.Font.GothamBold
+mini.TextSize = 20
+mini.TextColor3 = Color3.new(1,1,1)
+mini.BackgroundColor3 = Color3.new(0,0,0)
+mini.BackgroundTransparency = 0.5
+mini.Visible = false
+mini.Draggable = true
+Instance.new("UICorner", mini)
+
+--====================================================
+-- BUTTON LOGIC
+--====================================================
+closeBtn.MouseButton1Click:Connect(function()
+	confirm.Visible = true
+	setMainButtonsActive(false)
+	fadeGUI(main, false, 0.3)
+end)
+
+no.MouseButton1Click:Connect(function()
+	confirm.Visible = false
+	setMainButtonsActive(true)
+	fadeGUI(main, true, 0.3)
+end)
+
+yes.MouseButton1Click:Connect(function()
+     Aimbot = false
+     AutoJump = false
+     ESP = false
+     WallCheck = false
+     TeamCheck = false
+	fadeGUI(main, false, 0.3)
+	fadeGUI(confirm, false, 0.3)
+	task.delay(0.3, function()
+		gui:Destroy()
+		blur:Destroy()
+	end)
+end)
+
+minimizeBtn.MouseButton1Click:Connect(function()
+	fadeGUI(main, false, 0.3)
+	task.delay(0.3, function()
+		main.Visible = false
+		mini.Visible = true
+		blur.Enabled = false
+	end)
+end)
+
+mini.MouseButton1Click:Connect(function()
+	mini.Visible = false
+	main.Visible = true
+	blur.Enabled = true
+	fadeGUI(main, true, 0.3)
+	setMainButtonsActive(true)
+end)
+
+--====================================================
+-- WALL CHECK
+--====================================================
+local function canSee(part,char)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Blacklist
+	params.FilterDescendantsInstances = {getControlledCharacter(),char}
+	return not workspace:Raycast(Camera.CFrame.Position, part.Position - Camera.CFrame.Position, params)
+end
+
+--====================================================
+-- HIGHLIGHT ESP (SEE THROUGH WALLS)
+--====================================================
+local espFolder = Instance.new("Folder")
+espFolder.Name = "RH_ESP_Folder"
+espFolder.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local function createESP(char)
+	if espFolder:FindFirstChild(char.Name) then
+		espFolder[char.Name]:Destroy()
+	end
+	if not char:FindFirstChild("HumanoidRootPart") then return end
+
+	local highlight = Instance.new("Highlight")
+	highlight.Name = char.Name
+	highlight.Adornee = char
+	highlight.FillColor = Color3.fromRGB(255, 0, 0)      -- red fill
+	highlight.FillTransparency = 0.5
+	highlight.OutlineColor = Color3.fromRGB(255, 0, 0)   -- red outline
+	highlight.OutlineTransparency = 0
+	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop -- see through walls
+	highlight.Parent = espFolder
+end
+
+local function removeESP(char)
+	if espFolder:FindFirstChild(char.Name) then
+		espFolder[char.Name]:Destroy()
+	end
+end
+
+local function updateESP()
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= LocalPlayer and plr.Character then
+			-- Skip teammates if TeamCheck is enabled
+			if TeamCheck and plr.Team == LocalPlayer.Team then
+				removeESP(plr.Character)
+			else
+				if ESP then
+					createESP(plr.Character)
+				else
+					removeESP(plr.Character)
+				end
+			end
+		end
+	end
+end
+
+-- Player respawn ESP handling
+Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function(char)
+		task.wait(0.1)
+		if ESP then createESP(char) end
+	end)
+end)
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+	task.wait(0.1)
+	if ESP then createESP(char) end
+end)
+
+--====================================================
+-- MAIN LOOP
+--=======================================
+RunService.RenderStepped:Connect(function()
+	local myHum = getControlledHumanoid()
+
+	-- Auto Jump
+	if AutoJump and myHum and myHum.FloorMaterial ~= Enum.Material.Air then
+		myHum:ChangeState(Enum.HumanoidStateType.Jumping)
+	end
+
+	-- Aimbot
+	if Aimbot then
+		local best, dist = nil, math.huge
+		for _,plr in ipairs(Players:GetPlayers()) do
+			if plr ~= LocalPlayer and plr.Character then
+				if TeamCheck and plr.Team == LocalPlayer.Team then continue end
+				local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+				local head = plr.Character:FindFirstChild("Head")
+				if hum and head and hum.Health > 0 then
+					if WallCheck and not canSee(head, plr.Character) then continue end
+					local d = (head.Position - Camera.CFrame.Position).Magnitude
+					if d < dist then
+						dist = d
+						best = head
+					end
+				end
+			end
+		end
+		if best then
+			Camera.CFrame = CFrame.new(Camera.CFrame.Position, best.Position)
+		end
+	end
+
+	-- Update ESP for all players
+	updateESP()
+end)
