@@ -282,7 +282,7 @@ end
 --====================================================
 local espFolder = Instance.new("Folder")
 espFolder.Name = "RH_ESP_Folder"
-espFolder.Parent = LocalPlayer:WaitForChild("PlayerGui")
+espFolder.Parent = game:GetService("CoreGui")
 
 local function createESP(char)
 	if espFolder:FindFirstChild(char.Name) then
