@@ -5,6 +5,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
+local UIS = game:GetService("UserInputService")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
@@ -17,7 +18,7 @@ local AutoJump = false
 local ESP = false
 local TeamCheck = false
 local WallCheck = false
-
+local Speed = false
 --====================================================
 -- UNIVERSAL CHARACTER
 --====================================================
@@ -129,7 +130,40 @@ local function toggleRow(text,y,get,set)
 
 	refresh()
 end
+local function toggleRowtwo(text,y,get,set)
+	local lbl = Instance.new("TextLabel", main)
+	lbl.Size = UDim2.fromScale(0.25,0.14)
+	lbl.Position = UDim2.fromScale(0.5,y)
+	lbl.Text = text
+	lbl.Font = Enum.Font.GothamBold
+	lbl.TextSize = 20
+	lbl.TextColor3 = Color3.new(1,1,1)
+	lbl.BackgroundColor3 = Color3.fromRGB(55,55,55)
+	Instance.new("UICorner", lbl)
 
+	local btn = Instance.new("TextButton", main)
+	btn.Size = UDim2.fromScale(0.14,0.14)
+	btn.Position = UDim2.fromScale(0.780,y)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 20
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.BackgroundColor3 = Color3.fromRGB(55,55,55)
+	btn.AutoButtonColor = false
+	Instance.new("UICorner", btn)
+
+	local function refresh()
+		btn.Text = get() and "ON" or "OFF"
+	end
+
+	btn.MouseButton1Click:Connect(function()
+		set(not get())
+		refresh()
+	end)
+
+	refresh()
+end
+
+toggleRowtwo("Speed",0.20,function()return Speed end, function(v)Speed=v end)
 toggleRow("Aimbot",0.20,function()return Aimbot end,function(v)Aimbot=v end)
 toggleRow("Auto Jump",0.35,function()return AutoJump end,function(v)AutoJump=v end)
 toggleRow("ESP",0.50,function()return ESP end,function(v)ESP=v end)
@@ -242,6 +276,7 @@ yes.MouseButton1Click:Connect(function()
      ESP = false
      WallCheck = false
      TeamCheck = false
+     Speed = false
 	fadeGUI(main, false, 0.3)
 	fadeGUI(confirm, false, 0.3)
 	task.delay(0.3, function()
@@ -282,7 +317,7 @@ end
 --====================================================
 local espFolder = Instance.new("Folder")
 espFolder.Name = "RH_ESP_Folder"
-espFolder.Parent = game:GetService("CoreGui")
+espFolder.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local function createESP(char)
 	if espFolder:FindFirstChild(char.Name) then
@@ -327,22 +362,27 @@ end
 -- Player respawn ESP handling
 Players.PlayerAdded:Connect(function(player)
 	player.CharacterAdded:Connect(function(char)
-		task.wait(0.1)
+		task.wait(0.5)
 		if ESP then createESP(char) end
 	end)
 end)
 
 LocalPlayer.CharacterAdded:Connect(function(char)
-	task.wait(0.1)
+	task.wait(0.5)
 	if ESP then createESP(char) end
 end)
 
 --====================================================
 -- MAIN LOOP
---=======================================
+--====================================================
 RunService.RenderStepped:Connect(function()
 	local myHum = getControlledHumanoid()
-
+     --Speed
+     if Speed then
+        myHum.WalkSpeed = 100
+     else
+        myHum.WalkSpeed = 36
+     end
 	-- Auto Jump
 	if AutoJump and myHum and myHum.FloorMaterial ~= Enum.Material.Air then
 		myHum:ChangeState(Enum.HumanoidStateType.Jumping)
