@@ -381,7 +381,7 @@ RunService.RenderStepped:Connect(function()
      if Speed then
         myHum.WalkSpeed = 100
      else
-        myHum.WalkSpeed = 36
+        myHum.WalkSpeed = 15
      end
 	-- Auto Jump
 	if AutoJump and myHum and myHum.FloorMaterial ~= Enum.Material.Air then
